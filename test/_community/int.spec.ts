@@ -6,8 +6,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import type { NextRESTClient } from '../__helpers/shared/NextRESTClient.js'
 
-import { devUser } from '../credentials.js'
 import { initPayloadInt } from '../__helpers/shared/initPayloadInt.js'
+import { devUser } from '../credentials.js'
 import { postsSlug } from './collections/Posts/index.js'
 
 let payload: Payload
@@ -72,5 +72,20 @@ describe('_Community Tests', () => {
       .then((res) => res.json())
 
     expect(data.doc.title).toEqual('REST API EXAMPLE')
+  })
+
+  it('not_like should exclude documents that contain the value', async () => {
+    await payload.create({ collection: postsSlug, data: { title: 'hello world' } })
+    await payload.create({ collection: postsSlug, data: { title: 'goodbye' } })
+
+    const { docs } = await payload.find({
+      collection: postsSlug,
+      where: { title: { not_like: 'hello' } },
+    })
+    const titles = docs.map((doc) => doc.title)
+
+    expect(titles).toContain('goodbye')
+    // Fails on SQLite / Postgres: `title NOT LIKE 'hello'` (no wildcards) is used, so 'hello world' is returned
+    expect(titles).not.toContain('hello world')
   })
 })
